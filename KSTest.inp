@@ -1,3 +1,5 @@
+clear 
+
 set verbose off
 
 function scalar factorial(scalar n)
@@ -74,15 +76,11 @@ function scalar D_pval(scalar n, scalar D)
 	scalar alpha = sum(Z)
 	# Fx = 1 - alfa
     return alpha
-end function 
-
-function scalar support_function(scalar alpha, scalar n, scalar D)
-    return abs(D_pval(n,D) - alpha)
-end function 
+end function
 
 function scalar D_exact_val(scalar n, scalar alpha)
     matrix D = {0.5}
-    BFGSmin(&D, support_function(alpha, n, D)) 
+    BFGSmin(&D, abs(D_pval(n,D) - alpha)) 
     return D
 end function 
 
@@ -129,6 +127,11 @@ function void KSTest(series s, string d, matrix pars)
         rej = ""
     endif
     
-    printf("Kolmogorv-Smirnov Test - H0: %s distribution\nCritical value D (%d obs, alpha = 0.05) = %f\nDn = %f, p-val = %f - Hypothesis %srejected\n", testType, $nobs, D, Dn, p, rej)
+    printf("- Kolmogorv-Smirnov Test -\nH0: %s distribution\nCritical value D (%d obs, alpha = 0.05) = %f\nDn = %f, p-val = %f - Hypothesis %srejected\n", testType, $nobs, D, Dn, p, rej)
 
 end function
+
+nulldata 20
+a = normal()
+KSTest(a, "N", {})
+print D_exact_val(14, 0.001)
