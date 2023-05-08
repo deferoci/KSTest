@@ -1,0 +1,134 @@
+set verbose off
+
+function scalar factorial(scalar n)
+    if n == 0
+        return 1
+    endif
+    return prodr(seq(1,n))
+end function
+
+function scalar D_pval(scalar n, scalar D)
+	# parameters definition
+	nD=n*D
+	m1=round(n*D+0.5)
+	m2=round(n-n*D-0.5)
+	l1=round(2*n*D+0.5)
+	n1=n*(1+D)
+	n2=n*(1-D)
+
+	# B matrix
+	B = zeros(2*(n+1),2*(n+1))
+
+	# B11 matrix
+	loop k = m1+1 .. n+1
+	    B[k,k]=1
+	endloop
+
+	loop r = m1 .. (n-1)
+	    loop k = (r+1) .. n
+            B[k+1,r+1] = factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r)/(n1-r))^(k-r))*(((n1-k)/(n1-r))^(n-k))
+	    endloop
+	endloop
+
+	# B22 matrix
+	loop k = n+2 .. n+2+m2
+	    B[k,k]=1
+	endloop
+
+	loop r = 0 .. m2-1
+	    loop k = r+1 .. m2
+            B[k+n+2,r+n+2]=factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r)/(n2-r))^(k-r))*(((n2-k)/(n2-r))^(n-k))
+	    endloop
+	endloop
+
+	# B21 matrix
+	loop r = m1 .. m2
+	    loop k = r .. m2
+            B[k+n+2,r+1]=factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r+2*nD)/(n1-r))^(k-r))*(((n2-k)/(n1-r))^(n-k))
+	    endloop
+	endloop
+
+	# B12 matrix
+	loop r = 0 .. n-l1
+	    loop k = l1+r .. n
+            B[k+1,r+n+2]=factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r-2*nD)/(n2-r))^(k-r))*(((n1-k)/(n2-r))^(n-k))
+	    endloop
+	endloop
+
+	# C vector
+	matrix C = zeros(2*(n+1))
+
+	# C1 vector
+	loop k = m1 .. n
+	    C[k+1]=factorial(n)/(factorial(k)*factorial(n-k))*(((k-nD)/n)^k)*(((n1-k)/n)^(n-k))
+	endloop
+
+	# C2 vector
+	loop k = 0 .. m2
+	    C[n+2+k]=factorial(n)/(factorial(k)*factorial(n-k))*(((k+nD)/n)^k)*(((n2-k)/n)^(n-k))
+	endloop
+
+	# system solution
+	matrix Binv = ginv(B)
+	matrix Z = Binv*C
+	scalar alpha = sum(Z)
+	# Fx = 1 - alfa
+    return alpha
+end function 
+
+function scalar support_function(scalar alpha, scalar n, scalar D)
+    return abs(D_pval(n,D) - alpha)
+end function 
+
+function scalar D_exact_val(scalar n, scalar alpha)
+    matrix D = {0.5}
+    BFGSmin(&D, support_function(alpha, n, D)) 
+    return D
+end function 
+
+function void KSTest(series s, string d, matrix pars)
+	# Build Cumulative distribution for observation
+	cumD = aggregate(null, s)
+	cumD[,2] = cum(cumD[,2] /$nobs)
+	
+	if d == "N" || d == "n" || d == "z"
+        # Compute hypothesized distribution
+        hypD = zeros(rows(cumD))
+        loop i = 1 .. rows(cumD)
+            hypD[i] = cdf(N, cumD[i,1])
+        endloop
+        testType = "Normal"
+        
+	elif d == "t"
+        hypD = zeros(rows(cumD))
+        loop i = 1 .. rows(cumD)
+            hypD[i] = cdf(t, cumD[i,1], pars[1])
+        endloop
+        testType = "Student's t"
+        
+    elif d == "c" || d == "x" || d == "X"
+        hypD = zeros(rows(cumD))
+        loop i = 1 .. rows(cumD)
+            hypD[i] = cdf(x, cumD[i,1], pars[1])
+        endloop
+        testType = "Chi square"
+    endif
+    
+    # Kolmogorov statistic
+	Dn = max(abs(cumD[,2] .- hypD))
+    
+    # Critical value
+    D = D_exact_val($nobs, 0.05)
+        
+	# p-val
+	p = D_pval($nobs, Dn)
+    
+    if p >= 0.05
+        rej = "not "
+    else
+        rej = ""
+    endif
+    
+    printf("Kolmogorv-Smirnov Test - H0: %s distribution\nCritical value D (%d obs, alpha = 0.05) = %f\nDn = %f, p-val = %f - Hypothesis %srejected\n", testType, $nobs, D, Dn, p, rej)
+
+end function
