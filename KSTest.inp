@@ -2,13 +2,6 @@ clear
 
 set verbose off
 
-function scalar factorial(scalar n)
-    if n == 0
-        return 1
-    endif
-    return prodr(seq(1,n))
-end function
-
 function scalar D_pval(scalar n, scalar D)
 	# parameters definition
 	nD=n*D
@@ -28,7 +21,7 @@ function scalar D_pval(scalar n, scalar D)
 
 	loop r = m1 .. (n-1)
 	    loop k = (r+1) .. n
-            B[k+1,r+1] = factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r)/(n1-r))^(k-r))*(((n1-k)/(n1-r))^(n-k))
+            B[k+1,r+1] = bincoeff(n-r, k-r) * (((k-r)/(n1-r))^(k-r)) * (((n1-k)/(n1-r))^(n-k))
 	    endloop
 	endloop
 
@@ -39,21 +32,21 @@ function scalar D_pval(scalar n, scalar D)
 
 	loop r = 0 .. m2-1
 	    loop k = r+1 .. m2
-            B[k+n+2,r+n+2]=factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r)/(n2-r))^(k-r))*(((n2-k)/(n2-r))^(n-k))
+            B[k+n+2,r+n+2] = bincoeff(n-r,k-r) * (((k-r)/(n2-r))^(k-r)) * (((n2-k)/(n2-r))^(n-k))
 	    endloop
 	endloop
 
 	# B21 matrix
 	loop r = m1 .. m2
 	    loop k = r .. m2
-            B[k+n+2,r+1]=factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r+2*nD)/(n1-r))^(k-r))*(((n2-k)/(n1-r))^(n-k))
+            B[k+n+2,r+1]= bincoeff(n-r,k-r) * (((k-r+2*nD)/(n1-r))^(k-r)) * (((n2-k)/(n1-r))^(n-k))
 	    endloop
 	endloop
 
 	# B12 matrix
 	loop r = 0 .. n-l1
 	    loop k = l1+r .. n
-            B[k+1,r+n+2]=factorial(n-r)/(factorial(k-r)*factorial(n-k))*(((k-r-2*nD)/(n2-r))^(k-r))*(((n1-k)/(n2-r))^(n-k))
+            B[k+1,r+n+2] = bincoeff(n-r,k-r) * (((k-r-2*nD)/(n2-r))^(k-r)) * (((n1-k)/(n2-r))^(n-k))
 	    endloop
 	endloop
 
@@ -62,32 +55,46 @@ function scalar D_pval(scalar n, scalar D)
 
 	# C1 vector
 	loop k = m1 .. n
-	    C[k+1]=factorial(n)/(factorial(k)*factorial(n-k))*(((k-nD)/n)^k)*(((n1-k)/n)^(n-k))
+	    C[k+1] = bincoeff(n,k) * (((k-nD)/n)^k)*(((n1-k)/n)^(n-k))
 	endloop
 
 	# C2 vector
 	loop k = 0 .. m2
-	    C[n+2+k]=factorial(n)/(factorial(k)*factorial(n-k))*(((k+nD)/n)^k)*(((n2-k)/n)^(n-k))
+	    C[n+2+k] = bincoeff(n,k) * (((k+nD)/n)^k)*(((n2-k)/n)^(n-k))
 	endloop
 
 	# system solution
-	matrix Binv = ginv(B)
-	matrix Z = Binv*C
-	scalar alpha = sum(Z)
-	# Fx = 1 - alfa
-    return alpha
+	catch matrix Binv = ginv(B)
+   if $error
+       print "ERROR: D is too close to 0 or 1. Cannot be computed"
+       return NA
+   else
+		matrix Z = Binv*C
+		scalar alpha = sum(Z)
+      return alpha
+   endif
+    
 end function
 
-function scalar D_exact_val(scalar n, scalar alpha)
-    matrix D = {0.5}
-    BFGSmin(&D, abs(D_pval(n,D) - alpha)) 
-    return D
+function scalar find_my_root(scalar D, scalar n, scalar alpha)
+    return D_pval(n,D) - alpha
 end function 
+
+function scalar D_exact_val(scalar n, scalar alpha)
+    temp = 0.5
+    catch D = fzero(find_my_root(temp, n, alpha), 0.5)
+    if $error
+        print "ERROR: Alpha too small or too big to be computed"
+        return NA
+    else 
+        return D
+    endif
+end function 
+
 
 function void KSTest(series s, string d, matrix pars)
 	# Build Cumulative distribution for observation
-	cumD = aggregate(null, s)
-	cumD[,2] = cum(cumD[,2] /$nobs)
+	cumD = ecdf(s)
 	
 	if d == "N" || d == "n" || d == "z"
         # Compute hypothesized distribution
@@ -127,6 +134,7 @@ function void KSTest(series s, string d, matrix pars)
         rej = ""
     endif
     
+    print ""
     printf("- Kolmogorv-Smirnov Test -\nH0: %s distribution\nCritical value D (%d obs, alpha = 0.05) = %f\nDn = %f, p-val = %f - Hypothesis %srejected\n", testType, $nobs, D, Dn, p, rej)
 
 end function
@@ -134,4 +142,4 @@ end function
 nulldata 20
 a = normal()
 KSTest(a, "N", {})
-print D_exact_val(14, 0.001)
+print D_exact_val(14, 0.000000000001)
