@@ -3,86 +3,89 @@ clear
 set verbose off
 
 function scalar D_pval(scalar n, scalar D)
-	# parameters definition
-	nD=n*D
-	m1=round(n*D+0.5)
-	m2=round(n-n*D-0.5)
-	l1=round(2*n*D+0.5)
-	n1=n*(1+D)
-	n2=n*(1-D)
+    # parameters definition
+    nD=n*D
+    m1=round(n*D+0.5)
+    m2=round(n-n*D-0.5)
+    l1=round(2*n*D+0.5)
+    n1=n*(1+D)
+    n2=n*(1-D)
 
-	# B matrix
-	B = zeros(2*(n+1),2*(n+1))
+    # B matrix
+    B = zeros(2*(n+1),2*(n+1))
 
-	# B11 matrix
-	loop k = m1+1 .. n+1
-	    B[k,k]=1
-	endloop
+    # B11 matrix
+    loop k = m1+1 .. n+1
+        B[k,k]=1
+    endloop
 
-	loop r = m1 .. (n-1)
-	    loop k = (r+1) .. n
+    loop r = m1 .. (n-1)
+        loop k = (r+1) .. n
             B[k+1,r+1] = bincoeff(n-r, k-r) * (((k-r)/(n1-r))^(k-r)) * (((n1-k)/(n1-r))^(n-k))
-	    endloop
-	endloop
+        endloop
+    endloop
 
-	# B22 matrix
-	loop k = n+2 .. n+2+m2
-	    B[k,k]=1
-	endloop
+    # B22 matrix
+    loop k = n+2 .. n+2+m2
+        B[k,k]=1
+    endloop
 
-	loop r = 0 .. m2-1
-	    loop k = r+1 .. m2
+    loop r = 0 .. m2-1
+        loop k = r+1 .. m2
             B[k+n+2,r+n+2] = bincoeff(n-r,k-r) * (((k-r)/(n2-r))^(k-r)) * (((n2-k)/(n2-r))^(n-k))
-	    endloop
-	endloop
+        endloop
+    endloop
 
-	# B21 matrix
-	loop r = m1 .. m2
-	    loop k = r .. m2
+    # B21 matrix
+    loop r = m1 .. m2
+        loop k = r .. m2
             B[k+n+2,r+1]= bincoeff(n-r,k-r) * (((k-r+2*nD)/(n1-r))^(k-r)) * (((n2-k)/(n1-r))^(n-k))
-	    endloop
-	endloop
+        endloop
+    endloop
 
-	# B12 matrix
-	loop r = 0 .. n-l1
-	    loop k = l1+r .. n
+    # B12 matrix
+    loop r = 0 .. n-l1
+        loop k = l1+r .. n
             B[k+1,r+n+2] = bincoeff(n-r,k-r) * (((k-r-2*nD)/(n2-r))^(k-r)) * (((n1-k)/(n2-r))^(n-k))
-	    endloop
-	endloop
+        endloop
+    endloop
 
-	# C vector
-	matrix C = zeros(2*(n+1))
+    # C vector
+    matrix C = zeros(2*(n+1))
 
-	# C1 vector
-	loop k = m1 .. n
-	    C[k+1] = bincoeff(n,k) * (((k-nD)/n)^k)*(((n1-k)/n)^(n-k))
-	endloop
+    # C1 vector
+    loop k = m1 .. n
+        C[k+1] = bincoeff(n,k) * (((k-nD)/n)^k)*(((n1-k)/n)^(n-k))
+    endloop
 
-	# C2 vector
-	loop k = 0 .. m2
-	    C[n+2+k] = bincoeff(n,k) * (((k+nD)/n)^k)*(((n2-k)/n)^(n-k))
-	endloop
+    # C2 vector
+    loop k = 0 .. m2
+        C[n+2+k] = bincoeff(n,k) * (((k+nD)/n)^k)*(((n2-k)/n)^(n-k))
+    endloop
 
-	# system solution
-	catch matrix Binv = ginv(B)
-   if $error
-       print "ERROR: D is too close to 0 or 1. Cannot be computed"
-       return NA
-   else
-		matrix Z = Binv*C
-		scalar alpha = sum(Z)
-      return alpha
-   endif
-    
+    # system solution
+    catch matrix Binv = ginv(B)
+    if $error
+        print "ERROR: D too small or too big to be computed"
+        return NA
+    else
+        matrix Z = Binv*C
+        scalar alpha = sum(Z)
+        return alpha
+    endif
 end function
 
-function scalar find_my_root(scalar D, scalar n, scalar alpha)
+function scalar find_my_root(scalar D, scalar alpha, scalar n)
+    # Helper function to use fzero in D_exact_val
+    
     return D_pval(n,D) - alpha
 end function 
 
-function scalar D_exact_val(scalar n, scalar alpha)
+function scalar D(scalar alpha, scalar n)
+    # Iterates D_pval to find aplha
+    
     temp = 0.5
-    catch D = fzero(find_my_root(temp, n, alpha), 0.5)
+    catch D = fzero(find_my_root(temp, alpha, n), 0.5)
     if $error
         print "ERROR: Alpha too small or too big to be computed"
         return NA
@@ -91,55 +94,68 @@ function scalar D_exact_val(scalar n, scalar alpha)
     endif
 end function 
 
-
-function void KSTest(series s, string d, matrix pars)
-	# Build Cumulative distribution for observation
-	cumD = ecdf(s)
-	
-	if d == "N" || d == "n" || d == "z"
-        # Compute hypothesized distribution
-        hypD = zeros(rows(cumD))
-        loop i = 1 .. rows(cumD)
-            hypD[i] = cdf(N, cumD[i,1])
-        endloop
-        testType = "Normal"
-        
-	elif d == "t"
-        hypD = zeros(rows(cumD))
-        loop i = 1 .. rows(cumD)
-            hypD[i] = cdf(t, cumD[i,1], pars[1])
-        endloop
-        testType = "Student's t"
+function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
+    # Build cumulative distribution for observation
+    matrix Sn = ecdf(s)
+    
+    
+    if d == "N" || d == "n" || d == "z"
+        catch F0 = cdf("N", Sn[,1])
+        distribution = "Normal"  
+              
+    elif d == "t"
+        catch F0 = cdf("t", pars[1], Sn[,1])
+        distribution = "Student's t"
         
     elif d == "c" || d == "x" || d == "X"
-        hypD = zeros(rows(cumD))
-        loop i = 1 .. rows(cumD)
-            hypD[i] = cdf(x, cumD[i,1], pars[1])
-        endloop
-        testType = "Chi square"
+        catch F0 = cdf("X", pars[1], Sn[,1])
+        distribution = "Chi square"
     endif
-    
+  
+    # Check if sample is in support
+    if $error
+        printf("\nKolmogorv-Smirnov Test\n")
+        printf("----------------------\n")
+        printf("H0: %s distribution\n", distribution)
+        elif $error == 17
+            print "ERROR: Wrong parameters number"
+        elif $error == 34
+            print "ERROR: Sample out of support"
+        else
+            print "ERROR"
+        return
+    endif   
+      
     # Kolmogorov statistic
-	Dn = max(abs(cumD[,2] .- hypD))
+    Dn = max(abs(Sn[,2] .- F0))
     
     # Critical value
-    D = D_exact_val($nobs, 0.05)
+    D = D(alpha, $nobs)
         
-	# p-val
-	p = D_pval($nobs, Dn)
+    # p-val
+    p = D_pval($nobs, Dn)
     
-    if p >= 0.05
-        rej = "not "
-    else
-        rej = ""
-    endif
+    if p > 0.05
+        p_stars = ""
+    elif p <= 0.05 && p > 0.01
+        p_stars = "*"
+    elif p <= 0.01 && p > 0.001
+        p_stars = "**"
+    else 
+        p_stars = "***"
+    endif     
     
-    print ""
-    printf("- Kolmogorv-Smirnov Test -\nH0: %s distribution\nCritical value D (%d obs, alpha = 0.05) = %f\nDn = %f, p-val = %f - Hypothesis %srejected\n", testType, $nobs, D, Dn, p, rej)
-
+    printf("\nKolmogorv-Smirnov Test\n")
+    printf("----------------------\n")
+    temp_str = sprintf("H0: %s distribution      ", distribution)
+    printf("%s", substr("                                                               ",1,strlen(temp_str)))
+    printf("Dn          p-value\n")
+    printf("%s%.6f    %.6f %s\n", temp_str, Dn, p, p_stars)
+    printf("\nCritical value D(alpha = %.2f, %d obs) = %f\n", alpha, $nobs, D)
+    
 end function
 
-nulldata 20
-a = normal()
+nulldata 10
+a = randgen(u, -1, 3)
 KSTest(a, "N", {})
-print D_exact_val(14, 0.000000000001)
+KSTest(a, "X", {2}, 0.05)
