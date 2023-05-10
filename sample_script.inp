@@ -1,0 +1,13 @@
+include KSTest.gfn
+
+nulldata 30
+series s = normal()
+
+# Test if series is normal
+KSTest(s, "N", {})
+
+# Search exact value of Kolmogorov statistic
+print D(0.05, 20)
+
+# Search p-value of given Kolmogorov statistic
+print D_pval(20, 0.29407)
