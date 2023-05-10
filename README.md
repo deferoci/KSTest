@@ -11,7 +11,7 @@ Facchinetti, S. (2009).
 
 PUBLIC FUNCTION:
 --------------------------------------------------------------
-Function:	KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
+### Function:	KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
 
 Description:	Prints Kolmogorov Dn statistic for the sample s, its p-value
 		and the critical value D for a given alpha.
@@ -42,7 +42,7 @@ Output:		The function returns nothing.
 
 
 
-Function:	D_pval(scalar n, scalar D)
+### Function:	D_pval(scalar n, scalar D)
 
 Description:	Calcualte p-value of D using Facchinetti's algorithm.
 
@@ -53,7 +53,7 @@ Output:		Scalar p-value.
 
 
 
-Function:	D(scalar alpha, scalar n)
+### Function:	D(scalar alpha, scalar n)
 
 Description:	Inverse of function D_pval. Iteratively run D_pval to find
 		critical value given alpa and n.
