@@ -85,7 +85,7 @@ function scalar D(scalar alpha, scalar n)
     # Iterates D_pval to find aplha
     
     temp = 0.5
-    catch D = fzero(find_my_root(temp, alpha, n), 0.5)
+    catch D = fzero(find_my_root(temp, alpha, n))
     if $error
         print "ERROR: Alpha too small or too big to be computed"
         return NA
@@ -98,7 +98,7 @@ function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
     # Build cumulative distribution for observation
     matrix Sn = ecdf(s)
     
-    
+    # Find values of the assumed function F0
     if d == "N" || d == "n" || d == "z"
         catch F0 = cdf("N", Sn[,1])
         distribution = "Normal"  
@@ -159,8 +159,6 @@ function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
     # Check error
     e = $error
     if e
-        print e
-        flush
         printf("\nKolmogorv-Smirnov Test\n")
         printf("----------------------\n")
         printf("H0: %s distribution\n", distribution)
@@ -193,6 +191,7 @@ function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
         p_stars = "***"
     endif     
     
+    # Print output
     printf("\nKolmogorv-Smirnov Test\n")
     printf("----------------------\n")
     temp_str = sprintf("H0: %s distribution      ", distribution)
@@ -202,9 +201,3 @@ function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
     printf("\nCritical value D(alpha = %.2f, %d obs) = %f\n", alpha, $nobs, D)
     
 end function
-
-nulldata 20
-a = randgen(exp, 1.5)
-KSTest(a, "N", {})
-KSTest(a, "X", {1})
-KSTest(a, "X", {2})
