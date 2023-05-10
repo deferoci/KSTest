@@ -102,6 +102,10 @@ function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
     if d == "N" || d == "n" || d == "z"
         catch F0 = cdf("N", Sn[,1])
         distribution = "Normal"  
+
+    elif d == "lgt" || d == "s"
+        catch F0 = cdf("lgt", Sn[,1])
+        distribution = "Logistic"  
               
     elif d == "t"
         catch F0 = cdf("t", pars[1], Sn[,1])
@@ -110,22 +114,66 @@ function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
     elif d == "c" || d == "x" || d == "X"
         catch F0 = cdf("X", pars[1], Sn[,1])
         distribution = "Chi square"
+
+    elif d == "f" || d == "F"
+        catch F0 = cdf("F", pars[1], pars[2], Sn[,1])
+        distribution = "Fisher-Snedecor"
+
+    elif d == "g" || d == "G"
+        catch F0 = cdf("G", pars[1], pars[2], Sn[,1])
+        distribution = "Gamma"
+
+    elif d == "beta"
+        catch F0 = cdf("beta", pars[1], pars[2], Sn[,1])
+        distribution = "Beta"
+
+    elif d == "exp"
+        catch F0 = cdf("exp", pars[1], Sn[,1])
+        distribution = "Exponential"
+
+    elif d == "w" || d == "W"
+        catch F0 = cdf("W", pars[1], pars[2], Sn[,1])
+        distribution = "Weibull"
+
+    elif d == "l" || d == "L"
+        catch F0 = cdf("L", pars[1], pars[2], Sn[,1])
+        distribution = "Laplace"
+
+    elif d == "E"   
+        catch F0 = cdf("E", pars[1], Sn[,1])
+        distribution = "Generalized Error"
+
+    elif d == "ncX"
+        catch F0 = cdf("ncX", pars[1], pars[2], Sn[,1])
+        distribution = "Non-central chi square"
+
+    elif d == "ncF"
+        catch F0 = cdf("ncF", pars[1], pars[2], pars[3], Sn[,1])
+        distribution = "Non-central F"
+
+    elif d == "nct"
+        catch F0 = cdf("nct", pars[1], pars[2], Sn[,1])
+        distribution = "Non-central t"
     endif
   
-    # Check if sample is in support
-    if $error
+    # Check error
+    e = $error
+    if e
+        print e
+        flush
         printf("\nKolmogorv-Smirnov Test\n")
         printf("----------------------\n")
         printf("H0: %s distribution\n", distribution)
-        elif $error == 17
+        if e == 17
             print "ERROR: Wrong parameters number"
-        elif $error == 34
+        elif e == 34
             print "ERROR: Sample out of support"
         else
             print "ERROR"
+        endif
         return
     endif   
-      
+
     # Kolmogorov statistic
     Dn = max(abs(Sn[,2] .- F0))
     
@@ -155,7 +203,8 @@ function void KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
     
 end function
 
-nulldata 10
-a = randgen(u, -1, 3)
+nulldata 20
+a = randgen(exp, 1.5)
 KSTest(a, "N", {})
-KSTest(a, "X", {2}, 0.05)
+KSTest(a, "X", {1})
+KSTest(a, "X", {2})
