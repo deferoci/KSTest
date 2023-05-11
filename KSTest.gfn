@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gretl-functions>
+<gretl-function-package name="KSTest" minver="2020c">
+<author email="gretlpkg@deferoci.mozmail.com">Federico Fiorani</author>
+<version>1.0</version>
+<date>2023-05-11</date>
+<description>Kolmogorov-Smirnov Test</description>
+<tags>C12 C10</tags>
+<label>Kolmogorov-Smirnov Test</label>
+<menu-attachment>MAINWIN/Tools</menu-attachment>
+<help>
+The package provides 3 functions, one to perform the Kolmogorov-Smirnov test
+one to compute Kolmogorov D statistic and one to compute D p-value.
+
+Kolmogorov-Smirnov is a nonparametric test to test the hypothesis that the
+sample is extracted from a given continuous distribution.
+The algorithm used in the package is the same as that described in &quot;A
+Procedure to Find Exact Critical Values of Kolmogorov-Smirnov Test.&quot;,
+Facchinetti, S. (2009).
+
+Source code can also be found here:
+https://github.com/deferoci/KSTest
+
+FUNCTIONS:
+===============================================================================
+Function:	KSTest(series s, string d, matrix pars[null],
+		       scalar alpha[0:1:0.05], bool verbose)
+
+Description:	Prints Kolmogorov Dn statistic for the sample s, its p-value
+		and the critical value D for a given alpha. Return the vector
+		{Dn, p-value, D}
+
+Arguments:	Series s, sample to test.
+		String d, is the same value as &quot;d&quot; parameter in gretl function
+		&quot;cdf&quot;. The accepted functions are:
+			- Standard normal (d = z, n, or N)
+			- Logistic (lgt or s)
+			- Student's t (t)
+			- Chi square (c, x, or X)
+			- Snedecor's F (f or F)
+			- Gamma (g or G)
+			- Beta (beta)
+			- Exponential (exp)
+			- Weibull (w or W)
+			- Laplace (l or L)
+			- Generalized Error (E)
+			- Non-central chi square (ncX)
+			- Non-central F (ncF)
+			- Non-central t (nct)
+			- Uniform (u or U) NOTE This function is not accepted
+			  in &quot;cdf&quot;. Takes 2 parameters as input, a (left
+			  endpoint of support) and b (right endpoint)
+		Matrix pars (optional), contains the values passed to cdf for
+		the chosen distribution fuction. If the distribution function
+		requires no parameters can be omitted.
+		Scalar alpha (optional, default 0.05), value for which the
+		critical value D is computed.
+		Bool verbose (optional, default 1), set 0 to not print output.
+
+Output:		Return the vector {Dn, p-value, D}
+
+-------------------------------------------------------------------------------
+
+Function:	D_pval(scalar n, scalar D)
+
+Description:	Calcualte p-value of D using Facchinetti's algorithm.
+
+Arguments:	Scalar n, observations in the sample.
+		Scalar D, Kolmogorov statistic.
+
+Output:		Scalar p-value.
+
+-------------------------------------------------------------------------------
+
+Function:	D(scalar alpha, scalar n)
+
+Description:	Inverse of function D_pval. Iteratively run D_pval to find
+		critical value given alpa and n.
+
+Arguments:	Scalar alpha, p-value of D searched
+		Scalar n, observations in the sample.
+
+Output:		Scalar D, critical value.
+</help>
+<gretl-function name="D_pval" type="scalar">
+ <params count="2">
+  <param name="n" type="scalar"/>
+  <param name="D" type="scalar"/>
+ </params>
+<code>if int(n) != n
+  print &quot;ERROR: argument n not valid&quot;
+  return NA
+endif
+
+# parameters definition
+nD=n*D
+m1=round(n*D+0.5)
+m2=round(n-n*D-0.5)
+l1=round(2*n*D+0.5)
+n1=n*(1+D)
+n2=n*(1-D)
+
+# B matrix
+B = zeros(2*(n+1),2*(n+1))
+
+# B11 matrix
+loop k = m1+1 .. n+1
+  B[k,k]=1
+endloop
+
+loop r = m1 .. (n-1)
+  loop k = (r+1) .. n
+    B[k+1,r+1] = bincoeff(n-r, k-r) * (((k-r)/(n1-r))^(k-r)) * (((n1-k)/(n1-r))^(n-k))
+  endloop
+endloop
+
+# B22 matrix
+loop k = n+2 .. n+2+m2
+  B[k,k]=1
+endloop
+
+loop r = 0 .. m2-1
+  loop k = r+1 .. m2
+    B[k+n+2,r+n+2] = bincoeff(n-r,k-r) * (((k-r)/(n2-r))^(k-r)) * (((n2-k)/(n2-r))^(n-k))
+  endloop
+endloop
+
+# B21 matrix
+loop r = m1 .. m2
+  loop k = r .. m2
+    B[k+n+2,r+1]= bincoeff(n-r,k-r) * (((k-r+2*nD)/(n1-r))^(k-r)) * (((n2-k)/(n1-r))^(n-k))
+  endloop
+endloop
+
+# B12 matrix
+loop r = 0 .. n-l1
+  loop k = l1+r .. n
+    B[k+1,r+n+2] = bincoeff(n-r,k-r) * (((k-r-2*nD)/(n2-r))^(k-r)) * (((n1-k)/(n2-r))^(n-k))
+  endloop
+endloop
+
+# C vector
+matrix C = zeros(2*(n+1))
+
+# C1 vector
+loop k = m1 .. n
+  C[k+1] = bincoeff(n,k) * (((k-nD)/n)^k)*(((n1-k)/n)^(n-k))
+endloop
+
+# C2 vector
+loop k = 0 .. m2
+  C[n+2+k] = bincoeff(n,k) * (((k+nD)/n)^k)*(((n2-k)/n)^(n-k))
+endloop
+
+# system solution
+catch matrix Binv = ginv(B)
+if $error
+  print &quot;ERROR: D too small or too big to be computed&quot;
+  return NA
+else
+  matrix Z = Binv*C
+  scalar alpha = sum(Z)
+  return alpha
+endif
+</code>
+</gretl-function>
+<gretl-function name="D" type="scalar">
+ <params count="2">
+  <param name="alpha" type="scalar"/>
+  <param name="n" type="scalar"/>
+ </params>
+<code># Iterates D_pval to find aplha
+
+if int(n) != n
+  print &quot;ERROR: argument n not valid&quot;
+  return NA
+endif
+
+temp = 0.5
+catch D = fzero(find_my_root(temp, alpha, n), {0.001, 0.999})
+if $error
+  print &quot;ERROR: Alpha too small or too big to be computed&quot;
+  return NA
+else
+  return D
+endif
+</code>
+</gretl-function>
+<gretl-function name="KSTest" type="matrix" pkg-role="gui-main">
+ <params count="5">
+  <param name="s" type="series"/>
+  <param name="d" type="string"/>
+  <param name="pars" type="matrix" optional="true"/>
+  <param name="alpha" type="scalar" min="0" max="1" default="0.05"/>
+  <param name="verbose" type="bool" default="1"/>
+ </params>
+<code># Build cumulative distribution for observation
+matrix Sn = ecdf(s)
+
+# Initialise pars
+if !exists(pars)
+  pars = {}
+endif
+
+# Find values of the assumed function F0
+if d == &quot;N&quot; || d == &quot;n&quot; || d == &quot;z&quot;
+  catch F0 = cdf(&quot;N&quot;, Sn[,1])
+  distribution = &quot;Normal&quot;
+
+elif d == &quot;lgt&quot; || d == &quot;s&quot;
+  catch F0 = cdf(&quot;lgt&quot;, Sn[,1])
+  distribution = &quot;Logistic&quot;
+
+elif d == &quot;t&quot;
+  catch F0 = cdf(&quot;t&quot;, pars[1], Sn[,1])
+  distribution = &quot;Student's t&quot;
+
+elif d == &quot;c&quot; || d == &quot;x&quot; || d == &quot;X&quot;
+  catch F0 = cdf(&quot;X&quot;, pars[1], Sn[,1])
+  distribution = &quot;Chi square&quot;
+
+elif d == &quot;f&quot; || d == &quot;F&quot;
+  catch F0 = cdf(&quot;F&quot;, pars[1], pars[2], Sn[,1])
+  distribution = &quot;Fisher-Snedecor&quot;
+
+elif d == &quot;g&quot; || d == &quot;G&quot;
+  catch F0 = cdf(&quot;G&quot;, pars[1], pars[2], Sn[,1])
+  distribution = &quot;Gamma&quot;
+
+elif d == &quot;beta&quot;
+  catch F0 = cdf(&quot;beta&quot;, pars[1], pars[2], Sn[,1])
+  distribution = &quot;Beta&quot;
+
+elif d == &quot;exp&quot;
+  catch F0 = cdf(&quot;exp&quot;, pars[1], Sn[,1])
+  distribution = &quot;Exponential&quot;
+
+elif d == &quot;w&quot; || d == &quot;W&quot;
+  catch F0 = cdf(&quot;W&quot;, pars[1], pars[2], Sn[,1])
+  distribution = &quot;Weibull&quot;
+
+elif d == &quot;l&quot; || d == &quot;L&quot;
+  catch F0 = cdf(&quot;L&quot;, pars[1], pars[2], Sn[,1])
+  distribution = &quot;Laplace&quot;
+
+elif d == &quot;E&quot;
+  catch F0 = cdf(&quot;E&quot;, pars[1], Sn[,1])
+  distribution = &quot;Generalized Error&quot;
+
+elif d == &quot;ncX&quot;
+  catch F0 = cdf(&quot;ncX&quot;, pars[1], pars[2], Sn[,1])
+  distribution = &quot;Non-central chi square&quot;
+
+elif d == &quot;ncF&quot;
+  catch F0 = cdf(&quot;ncF&quot;, pars[1], pars[2], pars[3], Sn[,1])
+  distribution = &quot;Non-central F&quot;
+
+elif d == &quot;nct&quot;
+  catch F0 = cdf(&quot;nct&quot;, pars[1], pars[2], Sn[,1])
+  distribution = &quot;Non-central t&quot;
+
+elif d == &quot;u&quot; || d == &quot;U&quot;
+  catch F0 = ((Sn[,1] .&gt;= pars[1] &amp;&amp; Sn[,1] .&lt;= pars[2] ? Sn[,1] : 0) .- pars[1]) ./ (pars[2] - pars[1])
+  distribution = &quot;Uniform&quot;
+endif
+
+# Check error
+e = $error
+if e
+  if verbose
+    # Print error
+    printf(&quot;\nKolmogorov-Smirnov Test\n&quot;)
+    printf(&quot;----------------------\n&quot;)
+    printf(&quot;H0: %s distribution\n&quot;, distribution)
+    if e == 17
+      print &quot;ERROR: Wrong parameters number&quot;
+    elif e == 34
+      print &quot;ERROR: Sample out of support&quot;
+    else
+      print &quot;ERROR&quot;
+    endif
+  endif
+  return {NA, NA}
+endif
+
+# Kolmogorov statistic
+Dn = max(abs(Sn[,2] .- F0))
+
+# Critical value
+D = D(alpha, $nobs)
+
+# p-val
+p = D_pval($nobs, Dn)
+
+if p &gt; 0.05
+  p_stars = &quot;&quot;
+elif p &lt;= 0.05 &amp;&amp; p &gt; 0.01
+  p_stars = &quot;*&quot;
+elif p &lt;= 0.01 &amp;&amp; p &gt; 0.001
+  p_stars = &quot;**&quot;
+else
+  p_stars = &quot;***&quot;
+endif
+
+if verbose
+  # Print output
+  printf(&quot;\nKolmogorov-Smirnov Test\n&quot;)
+  printf(&quot;----------------------\n&quot;)
+  temp_str = sprintf(&quot;H0: %s distribution      &quot;, distribution)
+  printf(&quot;%s&quot;, substr(&quot;                                                               &quot;,1,strlen(temp_str)))
+  printf(&quot;Dn          p-value\n&quot;)
+  printf(&quot;%s%.6f    %.6f %s\n&quot;, temp_str, Dn, p, p_stars)
+  printf(&quot;\nCritical value D(alpha = %.2f, %d obs) = %f\n&quot;, alpha, $nobs, D)
+endif
+
+return {Dn, p, D}
+</code>
+</gretl-function>
+<gretl-function name="find_my_root" type="scalar" private="1">
+ <params count="3">
+  <param name="D" type="scalar"/>
+  <param name="alpha" type="scalar"/>
+  <param name="n" type="scalar"/>
+ </params>
+<code># Helper function to use fzero in D_exact_val
+
+return D_pval(n,D) - alpha
+</code>
+</gretl-function>
+<sample-script>
+set verbose off
+
+include KSTest.gfn
+
+# Generate artificial data
+nulldata 30
+series s = normal()
+
+# Test if series is normal
+KSTest(s, &quot;N&quot;)
+
+# Test without printing
+test_val = KSTest(s, &quot;N&quot;, {}, 0.05, 0)
+
+# Print same result
+print test_val
+
+# Test if series is uniform 
+KSTest(s, &quot;U&quot;, {-1,2})
+
+# Search exact value of Kolmogorov statistic
+# Expected value from Birnbaum (1952) for n = 15 and alpha = 0.1: 0.304
+print D(0.1, 15)
+
+# Search p-value given the last statistic
+print D_pval(15, 0.304)
+</sample-script>
+</gretl-function-package>
+</gretl-functions>
