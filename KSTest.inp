@@ -163,12 +163,17 @@ function matrix KSTest (series s,
     elif d == "nct"
         catch F0 = cdf("nct", pars[1], pars[2], Sn[,1])
         distribution = "Non-central t"
+    
+    elif d == "u" || d == "U"
+        catch F0 = (S .- pars[1]) ./ (pars[2] - pars[1])
+        distribution = "Uniform"
     endif
 
     # Check error
     e = $error
     if e
         if verbose
+        # Print error
             printf("\nKolmogorov-Smirnov Test\n")
             printf("----------------------\n")
             printf("H0: %s distribution\n", distribution)
