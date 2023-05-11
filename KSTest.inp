@@ -98,6 +98,7 @@ function matrix KSTest (series s,
                         string d,
                         matrix pars[null],
                         scalar alpha[0:1:0.05],
+                        bool verbose[1])
     # Build cumulative distribution for observation
     matrix Sn = ecdf(s)
     
@@ -167,15 +168,17 @@ function matrix KSTest (series s,
     # Check error
     e = $error
     if e
-        printf("\nKolmogorv-Smirnov Test\n")
-        printf("----------------------\n")
-        printf("H0: %s distribution\n", distribution)
-        if e == 17
-            print "ERROR: Wrong parameters number"
-        elif e == 34
-            print "ERROR: Sample out of support"
-        else
-            print "ERROR"
+        if verbose
+            printf("\nKolmogorov-Smirnov Test\n")
+            printf("----------------------\n")
+            printf("H0: %s distribution\n", distribution)
+            if e == 17
+                print "ERROR: Wrong parameters number"
+            elif e == 34
+                print "ERROR: Sample out of support"
+            else
+                print "ERROR"
+            endif
         endif
         return {NA, NA}
     endif
@@ -199,17 +202,16 @@ function matrix KSTest (series s,
         p_stars = "***"
     endif
 
-    # Print output
-    printf("\nKolmogorv-Smirnov Test\n")
-    printf("----------------------\n")
-    temp_str = sprintf("H0: %s distribution      ", distribution)
-    printf("%s", substr("                                                               ",1,strlen(temp_str)))
-    printf("Dn          p-value\n")
-    printf("%s%.6f    %.6f %s\n", temp_str, Dn, p, p_stars)
-    printf("\nCritical value D(alpha = %.2f, %d obs) = %f\n", alpha, $nobs, D)
-
-    return {Dn, p}
-end function
-
+    if verbose
+        # Print output
+        printf("\nKolmogorov-Smirnov Test\n")
+        printf("----------------------\n")
+        temp_str = sprintf("H0: %s distribution      ", distribution)
+        printf("%s", substr("                                                               ",1,strlen(temp_str)))
+        printf("Dn          p-value\n")
+        printf("%s%.6f    %.6f %s\n", temp_str, Dn, p, p_stars)
+        printf("\nCritical value D(alpha = %.2f, %d obs) = %f\n", alpha, $nobs, D)
+    endif
     
+    return {Dn, p, D}
 end function
