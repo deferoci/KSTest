@@ -12,7 +12,7 @@ https://github.com/deferoci/KSTest
 
 FUNCTIONS:
 ===============================================================================
-Function:	KSTest(series s, string d, matrix pars,
+Function:	KSTest(series s, string d, matrix pars[null],
 		       scalar alpha[0:1:0.05], bool verbose)
 
 Description:	Prints Kolmogorov Dn statistic for the sample s, its p-value
@@ -40,7 +40,7 @@ Arguments:	Series s, sample to test.
 			  in "cdf". Takes 2 parameters as input, a (left
 			  endpoint of support) and b (right endpoint)
 		Matrix pars (optional), contains the values passed to cdf for
-		the chosen distribution fuction. If the distribution function 
+		the chosen distribution fuction. If the distribution function
 		requires no parameters can be omitted.
 		Scalar alpha (optional, default 0.05), value for which the
 		critical value D is computed.
