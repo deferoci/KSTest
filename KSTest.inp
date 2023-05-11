@@ -96,11 +96,16 @@ end function
 
 function matrix KSTest (series s,
                         string d,
-                        matrix pars,
-                        scalar alpha[0:1:0.05])
+                        matrix pars[null],
+                        scalar alpha[0:1:0.05],
     # Build cumulative distribution for observation
     matrix Sn = ecdf(s)
-
+    
+    # Initialise pars
+    if !exists(pars)
+        pars = {}
+    endif
+    
     # Find values of the assumed function F0
     if d == "N" || d == "n" || d == "z"
         catch F0 = cdf("N", Sn[,1])
