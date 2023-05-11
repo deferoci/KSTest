@@ -1,7 +1,7 @@
 # KSTest
  
 The package provides 3 functions, one to perform the Kolmogorov-Smirnov test
-one to calculate Kolmogorov D statistic and one to compute D p-value.
+one to compute Kolmogorov D statistic and one to compute D p-value.
 
 Kolmogorov-Smirnov is a nonparametric test to test the hypothesis that the
 sample is extracted from a given continuous distribution.
@@ -40,7 +40,7 @@ Arguments:	Series s, sample to test.
 		Matrix pars, contains the values passed to cdf for the chosen
 		distribution fuction.
 		Scalar alpha (optional), value for which the critical value D
-		is calculated.
+		is computed.
 
 Output:		Return the vector {Dn, p-value}
 
@@ -65,5 +65,5 @@ Description:	Inverse of function D_pval. Iteratively run D_pval to find
 Arguments:	Scalar alpha, p-value of D searched
 		Scalar n, observations in the sample.
 
-Output:		Scalar D, critic value.
+Output:		Scalar D, critical value.
 
