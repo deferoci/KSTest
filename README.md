@@ -12,11 +12,12 @@ https://github.com/deferoci/KSTest
 
 FUNCTIONS:
 ===============================================================================
-Function:	KSTest(series s, string d, matrix pars, scalar alpha[0:1:0.05])
+Function:	KSTest(series s, string d, matrix pars,
+		       scalar alpha[0:1:0.05], bool verbose)
 
 Description:	Prints Kolmogorov Dn statistic for the sample s, its p-value
 		and the critical value D for a given alpha. Return the vector
-		{Dn, p-value}
+		{Dn, p-value, D}
 
 Arguments:	Series s, sample to test.
 		String d, is the same value as "d" parameter in gretl function
@@ -36,7 +37,7 @@ Arguments:	Series s, sample to test.
 			- Non-central F (ncF)
 			- Non-central t (nct)
 			- Uniform (u or U) NOTE This function is not accepted
-			  in "cdf". Take 2 parameters as input, a (left
+			  in "cdf". Takes 2 parameters as input, a (left
 			  endpoint of support) and b (right endpoint)
 		Matrix pars, contains the values passed to cdf for the chosen
 		distribution fuction.
