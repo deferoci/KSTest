@@ -39,8 +39,9 @@ Arguments:	Series s, sample to test.
 			- Uniform (u or U) NOTE This function is not accepted
 			  in "cdf". Takes 2 parameters as input, a (left
 			  endpoint of support) and b (right endpoint)
-		Matrix pars, contains the values passed to cdf for the chosen
-		distribution fuction.
+		Matrix pars (optional), contains the values passed to cdf for
+		the chosen distribution fuction. If the distribution function 
+		requires no parameters can be omitted.
 		Scalar alpha (optional, default 0.05), value for which the
 		critical value D is computed.
 		Bool verbose (optional, default 1), set 0 to not print output.
