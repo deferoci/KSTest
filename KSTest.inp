@@ -8,6 +8,11 @@ end function
 
 function scalar D_pval (scalar n,
                         scalar D)
+    if int(n) != n
+        print "ERROR: argument n not valid"
+        return NA
+    endif
+
     # parameters definition
     nD=n*D
     m1=round(n*D+0.5)
@@ -84,8 +89,13 @@ function scalar D (scalar alpha,
                    scalar n)
     # Iterates D_pval to find aplha
 
+    if int(n) != n
+        print "ERROR: argument n not valid"
+        return NA
+    endif
+
     temp = 0.5
-    catch D = fzero(find_my_root(temp, alpha, n))
+    catch D = fzero(find_my_root(temp, alpha, n), {0.001, 0.999})
     if $error
         print "ERROR: Alpha too small or too big to be computed"
         return NA
