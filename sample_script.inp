@@ -7,10 +7,20 @@ nulldata 30
 series s = normal()
 
 # Test if series is normal
-KS_stat = KSTest(s, "N", {})
+KSTest(s, "N")
+
+# Test without printing
+test_val = KSTest(s, "N", {}, 0.05, 0)
+
+# Print same result
+print test_val
+
+# Test if series is uniform 
+KSTest(s, "U", {-1,2})
 
 # Search exact value of Kolmogorov statistic
-print D(0.05, 20)
+# Expected value from Birnbaum (1952) for n = 15 and alpha = 0.1: 0.304
+print D(0.1, 15)
 
-# Search p-value of given Kolmogorov statistic
-print D_pval(20, 0.29407)
+# Search p-value given the last statistic
+print D_pval(15, 0.304)

@@ -1,8 +1,13 @@
-clear 
+function scalar find_my_root (scalar D,
+                              scalar alpha,
+                              scalar n)
+    # Helper function to use fzero in D_exact_val
 
-set verbose off
+    return D_pval(n,D) - alpha
+end function
 
-function scalar D_pval(scalar n, scalar D)
+function scalar D_pval (scalar n,
+                        scalar D)
     # parameters definition
     nD=n*D
     m1=round(n*D+0.5)
@@ -75,24 +80,19 @@ function scalar D_pval(scalar n, scalar D)
     endif
 end function
 
-function scalar find_my_root(scalar D, scalar alpha, scalar n)
-    # Helper function to use fzero in D_exact_val
-    
-    return D_pval(n,D) - alpha
-end function 
-
-function scalar D(scalar alpha, scalar n)
+function scalar D (scalar alpha,
+                   scalar n)
     # Iterates D_pval to find aplha
-    
+
     temp = 0.5
     catch D = fzero(find_my_root(temp, alpha, n))
     if $error
         print "ERROR: Alpha too small or too big to be computed"
         return NA
-    else 
+    else
         return D
     endif
-end function 
+end function
 
 function matrix KSTest (series s,
                         string d,
@@ -101,12 +101,12 @@ function matrix KSTest (series s,
                         bool verbose[1])
     # Build cumulative distribution for observation
     matrix Sn = ecdf(s)
-    
+
     # Initialise pars
     if !exists(pars)
         pars = {}
     endif
-    
+
     # Find values of the assumed function F0
     if d == "N" || d == "n" || d == "z"
         catch F0 = cdf("N", Sn[,1])
@@ -163,9 +163,9 @@ function matrix KSTest (series s,
     elif d == "nct"
         catch F0 = cdf("nct", pars[1], pars[2], Sn[,1])
         distribution = "Non-central t"
-    
+
     elif d == "u" || d == "U"
-        catch F0 = (S .- pars[1]) ./ (pars[2] - pars[1])
+        catch F0 = ((Sn[,1] .>= pars[1] && Sn[,1] .<= pars[2] ? Sn[,1] : 0) .- pars[1]) ./ (pars[2] - pars[1])
         distribution = "Uniform"
     endif
 
@@ -173,7 +173,7 @@ function matrix KSTest (series s,
     e = $error
     if e
         if verbose
-        # Print error
+            # Print error
             printf("\nKolmogorov-Smirnov Test\n")
             printf("----------------------\n")
             printf("H0: %s distribution\n", distribution)
@@ -217,6 +217,6 @@ function matrix KSTest (series s,
         printf("%s%.6f    %.6f %s\n", temp_str, Dn, p, p_stars)
         printf("\nCritical value D(alpha = %.2f, %d obs) = %f\n", alpha, $nobs, D)
     endif
-    
+
     return {Dn, p, D}
 end function

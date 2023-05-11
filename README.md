@@ -1,5 +1,3 @@
-# KSTest
- 
 The package provides 3 functions, one to perform the Kolmogorov-Smirnov test
 one to compute Kolmogorov D statistic and one to compute D p-value.
 
@@ -37,12 +35,16 @@ Arguments:	Series s, sample to test.
 			- Non-central chi square (ncX)
 			- Non-central F (ncF)
 			- Non-central t (nct)
+			- Uniform (u or U) NOTE This function is not accepted
+			  in "cdf". Take 2 parameters as input, a (left
+			  endpoint of support) and b (right endpoint)
 		Matrix pars, contains the values passed to cdf for the chosen
 		distribution fuction.
-		Scalar alpha (optional), value for which the critical value D
-		is computed.
+		Scalar alpha (optional, default 0.05), value for which the
+		critical value D is computed.
+		Bool verbose (optional, default 1), set 0 to not print output.
 
-Output:		Return the vector {Dn, p-value}
+Output:		Return the vector {Dn, p-value, D}
 
 -------------------------------------------------------------------------------
 
@@ -66,4 +68,3 @@ Arguments:	Scalar alpha, p-value of D searched
 		Scalar n, observations in the sample.
 
 Output:		Scalar D, critical value.
-
