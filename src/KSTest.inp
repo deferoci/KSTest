@@ -1,93 +1,104 @@
-function scalar find_my_root (scalar D,
+function scalar find_my_root (scalar self.ks_critical_value,
                               scalar alpha,
                               scalar n)
     # Helper function to use fzero in D_exact_val
 
-    return D_pval(n,D) - alpha
+    return ks_pvalue(n,self.ks_critical_value) - alpha
 end function
 
-function scalar D_pval (scalar n,
-                        scalar D)
-    if int(n) != n
-        print "ERROR: argument n not valid"
-        return NA
-    endif
 
-    # parameters definition
-    nD=n*D
-    m1=round(n*D+0.5)
-    m2=round(n-n*D-0.5)
-    l1=round(2*n*D+0.5)
-    n1=n*(1+D)
-    n2=n*(1-D)
+function void ks_pvalue (bundle *self)
+    # TODO: finish docstring
+    /* Compute the p-value of the KS test.
+      H0:
+      H1:
+    */
 
-    # B matrix
-    B = zeros(2*(n+1),2*(n+1))
+    if int(self.N) != self.N
+        print "ERROR: argument 'N' not valid"
+        scalar ks_pvalue = NA
+        scalar self.error = TRUE
 
-    # B11 matrix
-    loop k = m1+1 .. n+1
-        B[k,k]=1
-    endloop
-
-    loop r = m1 .. (n-1)
-        loop k = (r+1) .. n
-            B[k+1,r+1] = bincoeff(n-r, k-r) * (((k-r)/(n1-r))^(k-r)) * (((n1-k)/(n1-r))^(n-k))
-        endloop
-    endloop
-
-    # B22 matrix
-    loop k = n+2 .. n+2+m2
-        B[k,k]=1
-    endloop
-
-    loop r = 0 .. m2-1
-        loop k = r+1 .. m2
-            B[k+n+2,r+n+2] = bincoeff(n-r,k-r) * (((k-r)/(n2-r))^(k-r)) * (((n2-k)/(n2-r))^(n-k))
-        endloop
-    endloop
-
-    # B21 matrix
-    loop r = m1 .. m2
-        loop k = r .. m2
-            B[k+n+2,r+1]= bincoeff(n-r,k-r) * (((k-r+2*nD)/(n1-r))^(k-r)) * (((n2-k)/(n1-r))^(n-k))
-        endloop
-    endloop
-
-    # B12 matrix
-    loop r = 0 .. n-l1
-        loop k = l1+r .. n
-            B[k+1,r+n+2] = bincoeff(n-r,k-r) * (((k-r-2*nD)/(n2-r))^(k-r)) * (((n1-k)/(n2-r))^(n-k))
-        endloop
-    endloop
-
-    # C vector
-    matrix C = zeros(2*(n+1))
-
-    # C1 vector
-    loop k = m1 .. n
-        C[k+1] = bincoeff(n,k) * (((k-nD)/n)^k)*(((n1-k)/n)^(n-k))
-    endloop
-
-    # C2 vector
-    loop k = 0 .. m2
-        C[n+2+k] = bincoeff(n,k) * (((k+nD)/n)^k)*(((n2-k)/n)^(n-k))
-    endloop
-
-    # system solution
-    catch matrix Binv = ginv(B)
-    if $error
-        print "ERROR: D too small or too big to be computed"
-        return NA
     else
-        matrix Z = Binv*C
-        scalar alpha = sum(Z)
-        return alpha
+        # parameters definition
+        nD = self.N * ks_critical_value
+        m1 = round(self.N * ks_critical_value + 0.5)
+        m2 = round(self.N - self.N * ks_critical_value - 0.5)
+        l1 = round(2 * self.N * ks_critical_value + 0.5)
+        n1 = self.N * (1 + ks_critical_value)
+        n2 = self.N * (1 - ks_critical_value)
+
+        scalar dim = 2 * (self.N+1)
+        matrix B = zeros(dim, dim)
+        matrix C = zeros(dim)
+
+        # B11 matrix
+        loop k = m1+1..self.N+1
+            B[k,k]=1
+        endloop
+
+        loop r = m1..(self.N-1)
+            loop k = (r+1)..self.N
+                B[k+1,r+1] = bincoeff(self.N-r, k-r) * (((k-r)/(n1-r))^(k-r)) * (((n1-k)/(n1-r))^(self.N-k))
+            endloop
+        endloop
+
+        # B22 matrix
+        loop k = self.N+2..self.N+2+m2
+            B[k,k]=1
+        endloop
+
+        loop r = 0..m2-1
+            loop k = r+1..m2
+                B[k+self.N+2,r+self.N+2] = bincoeff(self.N-r,k-r) * (((k-r)/(n2-r))^(k-r)) * (((n2-k)/(n2-r))^(self.N-k))
+            endloop
+        endloop
+
+        # B21 matrix
+        loop r = m1..m2
+            loop k = r..m2
+                B[k+self.N+2,r+1]= bincoeff(self.N-r,k-r) * (((k-r+2*nD)/(n1-r))^(k-r)) * (((n2-k)/(n1-r))^(self.N-k))
+            endloop
+        endloop
+
+        # B12 matrix
+        loop r = 0..self.N-l1
+            loop k = l1+r..self.N
+                B[k+1,r+self.N+2] = bincoeff(self.N-r,k-r) * (((k-r-2*nD)/(n2-r))^(k-r)) * (((n1-k)/(n2-r))^(self.N-k))
+            endloop
+        endloop
+
+        # C1 vector
+        loop k = m1..self.N
+            C[k+1] = bincoeff(self.N,k) * (((k-nD)/self.N)^k)*(((n1-k)/self.N)^(self.N-k))
+        endloop
+
+        # C2 vector
+        loop k = 0..m2
+            C[self.N+2+k] = bincoeff(self.N,k) * (((k+nD)/self.N)^k)*(((n2-k)/self.N)^(self.N-k))
+        endloop
+
+        ** CONTINUE HERE **
+
+        # system solution
+        catch matrix Binv = ginv(B)
+        if $error
+            print "ERROR: ks_critical_value too small or too big to be computed"
+            return NA
+        else
+            matrix Z = Binv*C
+            scalar alpha = sum(Z)
+            return alpha
+        endif
+
     endif
 end function
 
-function scalar D (scalar alpha,
-                   scalar n)
-    # Iterates D_pval to find aplha
+
+
+function scalar ks_critical_value (const scalar alpha,
+                                   const int n[1::])
+    # Iterates ks_pvalue to find aplha
 
     if int(n) != n
         print "ERROR: argument n not valid"
@@ -95,123 +106,185 @@ function scalar D (scalar alpha,
     endif
 
     temp = 0.5
-    catch D = fzero(find_my_root(temp, alpha, n), {0.001, 0.999})
+    catch self.ks_critical_value = fzero(find_my_root(temp, alpha, n), {0.001, 0.999})
     if $error
         print "ERROR: Alpha too small or too big to be computed"
         return NA
     else
-        return D
+        return self.ks_critical_value
     endif
 end function
 
-function matrix KSTest (series s,
-                        string d,
-                        matrix pars[null],
-                        scalar alpha[0:1:0.05],
-                        bool verbose[1])
-    # Build cumulative distribution for observation
-    matrix Sn = ecdf(s)
 
-    # Initialise pars
-    if !exists(pars)
-        pars = {}
+function bundle kstest_defaults (void)
+    /* Set default parameters for kstest(). */
+
+    bundle self
+    matrix self.pars = {}
+    scalar alpha = 0.05
+    scalar verbose = FALSE
+
+    return self
+end function
+
+
+function string get_distribution_name (const string abbreviation)
+    /* Mapping from distribution abbreviation to proper discription. */
+
+    bundle map = _(z = "Normal",
+                   n = "Normal",
+                   N = "Normal",
+                   lgt = "Logistic",
+                   s = "Logistic",
+                   t = "Student'target t",
+                   c = "Chi square",
+                   x = "Chi square",
+                   X = "Chi square",
+                   f = "Fisher-Snedecor",
+                   F = "Fisher-Snedecor",
+                   g = "Gamma",
+                   G = "Gamma",
+                   beta = "Beta",
+                   exp = "Exponential",
+                   w = "Weibull",
+                   W = "Weibull",
+                   l = "Laplace",
+                   L = "Laplace",
+                   E = "Generalized Error",
+                   ncX = "Non-central chi square",
+                   ncF = "Non-central F",
+                   nct = "Non-central t",
+                   u = "Uniform",
+                   U = "Uniform")
+
+    return map[abbreviation]
+end function
+
+
+function void get_cdf (bundle *self)
+    /* # Find values of the assumed function F0. */
+
+    if self.distribution == "N" || self.distribution == "n" || self.distribution == "z"
+        catch self.F0 = cdf("N", self.target_unique_values)
+
+    elif self.distribution == "lgt" || self.distribution == "s"
+        catch self.F0 = cdf("lgt", self.target_unique_values)
+
+    elif self.distribution == "t"
+        catch self.F0 = cdf("t", pars[1], self.target_unique_values)
+
+    elif self.distribution == "c" || self.distribution == "x" || self.distribution == "X"
+        catch self.F0 = cdf("X", pars[1], self.target_unique_values)
+
+    elif self.distribution == "f" || self.distribution == "F"
+        catch self.F0 = cdf("F", pars[1], pars[2], self.target_unique_values)
+
+    elif self.distribution == "g" || self.distribution == "G"
+        catch self.F0 = cdf("G", pars[1], pars[2], self.target_unique_values)
+
+    elif self.distribution == "beta"
+        catch self.F0 = cdf("beta", pars[1], pars[2], self.target_unique_values)
+
+    elif self.distribution == "exp"
+        catch self.F0 = cdf("exp", pars[1], self.target_unique_values)
+
+    elif self.distribution == "w" || self.distribution == "W"
+        catch self.F0 = cdf("W", pars[1], pars[2], self.target_unique_values)
+
+    elif self.distribution == "l" || self.distribution == "L"
+        catch self.F0 = cdf("L", pars[1], pars[2], self.target_unique_values)
+
+    elif self.distribution == "E"
+        catch self.F0 = cdf("E", pars[1], self.target_unique_values)
+
+    elif self.distribution == "ncX"
+        catch self.F0 = cdf("ncX", pars[1], pars[2], self.target_unique_values)
+
+    elif self.distribution == "ncF"
+        catch self.F0 = cdf("ncF", pars[1], pars[2], pars[3], self.target_unique_values)
+
+    elif self.distribution == "nct"
+        catch self.F0 = cdf("nct", pars[1], pars[2], self.target_unique_values)
+
+    elif self.distribution == "u" || self.distribution == "U"
+        catch self.F0 = ((self.target_unique_values .>= pars[1] && self.target_unique_values .<= pars[2] ? self.target_unique_values : 0) .- pars[1]) ./ (pars[2] - pars[1])
     endif
 
-    # Find values of the assumed function F0
-    if d == "N" || d == "n" || d == "z"
-        catch F0 = cdf("N", Sn[,1])
-        distribution = "Normal"
+    self.error = $error
+    self.distribution_label = get_distribution_name(self.distribution)
+end function
 
-    elif d == "lgt" || d == "s"
-        catch F0 = cdf("lgt", Sn[,1])
-        distribution = "Logistic"
 
-    elif d == "t"
-        catch F0 = cdf("t", pars[1], Sn[,1])
-        distribution = "Student's t"
+function scalar check_error (const bundle self)
+    /* code description
+    return: type, description */
 
-    elif d == "c" || d == "x" || d == "X"
-        catch F0 = cdf("X", pars[1], Sn[,1])
-        distribution = "Chi square"
-
-    elif d == "f" || d == "F"
-        catch F0 = cdf("F", pars[1], pars[2], Sn[,1])
-        distribution = "Fisher-Snedecor"
-
-    elif d == "g" || d == "G"
-        catch F0 = cdf("G", pars[1], pars[2], Sn[,1])
-        distribution = "Gamma"
-
-    elif d == "beta"
-        catch F0 = cdf("beta", pars[1], pars[2], Sn[,1])
-        distribution = "Beta"
-
-    elif d == "exp"
-        catch F0 = cdf("exp", pars[1], Sn[,1])
-        distribution = "Exponential"
-
-    elif d == "w" || d == "W"
-        catch F0 = cdf("W", pars[1], pars[2], Sn[,1])
-        distribution = "Weibull"
-
-    elif d == "l" || d == "L"
-        catch F0 = cdf("L", pars[1], pars[2], Sn[,1])
-        distribution = "Laplace"
-
-    elif d == "E"
-        catch F0 = cdf("E", pars[1], Sn[,1])
-        distribution = "Generalized Error"
-
-    elif d == "ncX"
-        catch F0 = cdf("ncX", pars[1], pars[2], Sn[,1])
-        distribution = "Non-central chi square"
-
-    elif d == "ncF"
-        catch F0 = cdf("ncF", pars[1], pars[2], pars[3], Sn[,1])
-        distribution = "Non-central F"
-
-    elif d == "nct"
-        catch F0 = cdf("nct", pars[1], pars[2], Sn[,1])
-        distribution = "Non-central t"
-
-    elif d == "u" || d == "U"
-        catch F0 = ((Sn[,1] .>= pars[1] && Sn[,1] .<= pars[2] ? Sn[,1] : 0) .- pars[1]) ./ (pars[2] - pars[1])
-        distribution = "Uniform"
-    endif
-
-    # Check error
-    e = $error
-    if e
-        if verbose
-            # Print error
+    if self.error != FALSE
+        if self.verbose
             printf("\nKolmogorov-Smirnov Test\n")
             printf("----------------------\n")
-            printf("H0: %s distribution\n", distribution)
-            if e == 17
+            printf("H0: %target distribution\n", self.distribution_label)
+            if self.error == 17
                 print "ERROR: Wrong parameters number"
-            elif e == 34
+            elif self.error == 34
                 print "ERROR: Sample out of support"
             else
-                print "ERROR"
+                print "ERROR: Some error occurred"
             endif
         endif
-        return {NA, NA}
     endif
 
-    # Kolmogorov statistic
-    Dn = max(abs(Sn[,2] .- F0))
+    return variable
+end function
 
-    # Critical value
-    D = D(alpha, $nobs)
 
-    # p-val
-    p = D_pval($nobs, Dn)
+function scalar ks_statistics (const matrix cum_rel_frequencies "ecdf of target",
+                               const matrix F0 "cdf of distribution")
+    /* Compute the Kolmogorov test statistics. */
 
-    if p > 0.05
+    return max(abs(cum_rel_frequencies .- F0))
+end function
+
+function bundle KSTest (numeric target,
+                        const string distribution,
+                        const bundle self[null])
+    /* */
+
+    bundle defaults = kstest_defaults()
+    if !exists(self)
+        bundle self
+    endif
+    bundle self = self + defaults
+
+    self.N = nobs(target)
+    matrix ecdf_target = ecdf(target)
+    matrix self.target_unique_values = ecdf_target[,1]
+    matrix self.cum_rel_frequencies = ecdf_target[,2]
+
+    get_cdf(&self)
+
+    check_error(&self)
+    if self.error != FALSE
+        return self
+    endif
+
+    self.ks_statistics = ks_statistics(self)
+    self.ks_critical_value = ks_critical_value(self.alpha, self.N)
+
+    ** CONTINUE HERE **
+    ks_pvalue(&self)
+
+    # TODO: How can this happen? "n" should always be an integer, right?
+    check_error(&self)
+    if self.error != FALSE
+        return self
+    endif
+
+    if self.ks_pvalue > 0.05
         p_stars = ""
-    elif p <= 0.05 && p > 0.01
+    elif self.ks_pvalue <= 0.05 && self.ks_pvalue > 0.01
         p_stars = "*"
-    elif p <= 0.01 && p > 0.001
+    elif self.ks_pvalue <= 0.01 && self.ks_pvalue > 0.001
         p_stars = "**"
     else
         p_stars = "***"
@@ -221,12 +294,13 @@ function matrix KSTest (series s,
         # Print output
         printf("\nKolmogorov-Smirnov Test\n")
         printf("----------------------\n")
-        temp_str = sprintf("H0: %s distribution      ", distribution)
-        printf("%s", substr("                                                               ",1,strlen(temp_str)))
-        printf("Dn          p-value\n")
-        printf("%s%.6f    %.6f %s\n", temp_str, Dn, p, p_stars)
-        printf("\nCritical value D(alpha = %.2f, %d obs) = %f\n", alpha, $nobs, D)
+        temp_str = sprintf("H0: %target distribution      ", distribution)
+        printf("%target", substr("                                                               ",1,strlen(temp_str)))
+        printf("self.ks_statistics          self.ks_pvalue-value\n")
+        printf("%target%.6f    %.6f %target\n", temp_str, self.ks_statistics, self.ks_pvalue, p_stars)
+        printf("\nCritical value self.ks_critical_value(alpha = %.2f, %distribution obs) = %f\n",
+               self.alpha, self.N, self.ks_critical_value)
     endif
 
-    return {Dn, p, D}
+    return {self.ks_statistics, self.ks_pvalue, self.ks_critical_value}
 end function
