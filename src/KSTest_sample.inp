@@ -1,21 +1,20 @@
 set verbose off
-
 include KSTest.gfn
 
 # Generate artificial data
 nulldata 30
 series s = normal()
 
-# Test if series is normal
+# Test if series is normally distributed
 KSTest(s, "N")
 
 # Test without printing
-test_val = KSTest(s, "N", {}, 0.05, 0)
+scalar test_val = KSTest(s, "N", {}, 0.05, 0)
 
 # Print same result
 print test_val
 
-# Test if series is uniform 
+# Test if series is uniformally distributed
 KSTest(s, "U", {-1,2})
 
 # Search exact value of Kolmogorov statistic
