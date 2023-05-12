@@ -1,0 +1,13 @@
+set verbose off
+clear
+
+set assert stop
+include "./src/KSTest.inp" --force
+
+
+string actual = get_distribution_name("z")
+assert(actual == "Normal")
+
+
+print "Finished all tests succesfully."
+quit
